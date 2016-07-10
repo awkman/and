@@ -1,16 +1,22 @@
 #include <linux/module.h>
 #include <linux/etherdevice.h>
+#include <linux/if_arp.h>
 #include "util.h"
 #include "and_net_dev.h"
 
+extern struct and_priv *and;
+
 static int and_net_dev_ops_init(struct net_device *netdev)
 {
-	printk(KERN_INFO "%s: called\n", __func__);
+	printk(KERN_INFO "%s\n", __func__);
+
 	return 0;
 }
 
 static int and_net_dev_ops_open(struct net_device *netdev)
 {
+	printk(KERN_INFO "%s\n", __func__);
+
 	if (netif_queue_stopped(netdev))
 		netif_wake_queue(netdev);
 
@@ -19,6 +25,8 @@ static int and_net_dev_ops_open(struct net_device *netdev)
 
 static int and_net_dev_ops_stop(struct net_device *netdev)
 {
+	printk(KERN_INFO "%s\n", __func__);
+
 	netif_stop_queue(netdev);
 
 	return 0;
@@ -26,12 +34,17 @@ static int and_net_dev_ops_stop(struct net_device *netdev)
 
 static netdev_tx_t and_net_dev_ops_start_xmit(struct sk_buff *skb, struct net_device *netdev)
 {
+	printk(KERN_INFO "%s\n", __func__);
+
 	return NETDEV_TX_OK;
 }
 
 static int and_net_dev_ops_set_mac_addr(struct net_device *netdev, void *p)
 {
 	struct sockaddr *addr = p;
+
+	printk(KERN_INFO "%s\n", __func__);
+
 	if (!is_valid_ether_addr(addr->sa_data))
 		return -EADDRNOTAVAIL;
 
@@ -39,11 +52,13 @@ static int and_net_dev_ops_set_mac_addr(struct net_device *netdev, void *p)
 	printk(KERN_INFO "%s: %s MAC address was changed to " MAC_ADDR "\n",
 	  __func__, netdev->name, P_MAC_ADDR(netdev->dev_addr));
 	
-	return NETDEV_TX_OK;
+	return 0;
 }
 
 static int and_net_dev_ops_do_ioctl(struct net_device *netdev, struct ifreq *ifreq, int cmd)
 {
+	printk(KERN_INFO "%s\n", __func__);
+
 	return 0;
 }
 
@@ -58,32 +73,51 @@ static const struct net_device_ops and_net_dev_ops = {
 
 static void and_net_dev_setup(struct net_device *netdev)
 {
+	printk(KERN_INFO "%s\n", __func__);
 	netdev->netdev_ops = &and_net_dev_ops;
 }
 
-int and_net_dev_init(void)
+int and_net_dev_init()
 {
 	struct net_device *netdev = NULL;
 	int ret = 0;
 
-	netdev = alloc_netdev(0, "and%d", NET_NAME_ENUM, and_net_dev_setup);
+	printk(KERN_INFO "%s\n", __func__);
+
+	netdev = alloc_netdev(sizeof(*and), "and%d", NET_NAME_ENUM, and_net_dev_setup);
 	if (!netdev)
 		return -ENOMEM;
 
+	netdev->type = ARPHRD_ETHER;
+	netdev->addr_len = ETH_ALEN;
+
 	ret = register_netdev(netdev);
-	if (!ret) {
+	if (ret) {
 		free_netdev(netdev);
 		goto error;
 	}
+
+	and = netdev_priv(netdev);
+	if (!and)
+		return -ENOMEM;
+
+	and->netdev = netdev;
 
 	return 0;
 
 error:
 	printk(KERN_ERR "%s: failed\n", __func__);
 	return ret;
-
 }
 
-void and_net_dev_exit(struct net_device *netdev)
+void and_net_dev_exit(struct and_priv *and)
 {
+	printk(KERN_INFO "%s\n", __func__);
+
+	if (and->netdev) {
+		unregister_netdev(and->netdev);
+		free_netdev(and->netdev);
+	}
+
+	kfree(and);
 }

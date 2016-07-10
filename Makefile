@@ -1,6 +1,6 @@
 TARGET=and_net
 CC=gcc
-CFLAGS=
+cc-flags-y := -g
 
 obj-m += $(TARGET).o
 $(TARGET)-objs := and.o and_net_dev.o
