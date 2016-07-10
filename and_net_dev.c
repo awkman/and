@@ -75,6 +75,8 @@ static void and_net_dev_setup(struct net_device *netdev)
 {
 	printk(KERN_INFO "%s\n", __func__);
 	netdev->netdev_ops = &and_net_dev_ops;
+	netdev->type = ARPHRD_ETHER;
+	netdev->addr_len = ETH_ALEN;
 }
 
 int and_net_dev_init()
@@ -87,9 +89,6 @@ int and_net_dev_init()
 	netdev = alloc_netdev(sizeof(*and), "and%d", NET_NAME_ENUM, and_net_dev_setup);
 	if (!netdev)
 		return -ENOMEM;
-
-	netdev->type = ARPHRD_ETHER;
-	netdev->addr_len = ETH_ALEN;
 
 	ret = register_netdev(netdev);
 	if (ret) {
@@ -118,6 +117,4 @@ void and_net_dev_exit(struct and_priv *and)
 		unregister_netdev(and->netdev);
 		free_netdev(and->netdev);
 	}
-
-	kfree(and);
 }
