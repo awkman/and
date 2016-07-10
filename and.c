@@ -8,13 +8,13 @@ MODULE_LICENSE("LGPL");
 
 static int __init and_init(void)
 {
-	printk(KERN_ERR "%s\n", __func__);
+	printk(KERN_INFO "%s\n", __func__);
 	return 0;
 }
 
 static void __exit and_exit(void)
 {
-	printk(KERN_ERR "%s\n", __func__);
+	printk(KERN_INFO "%s\n", __func__);
 }
 
 module_init(and_init);
