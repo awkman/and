@@ -113,7 +113,7 @@ int and_net_dev_init()
 
 	printk(KERN_INFO "%s\n", __func__);
 
-	netdev = alloc_netdev(sizeof(*and), "and%d", NET_NAME_ENUM, and_net_dev_setup);
+	netdev = alloc_netdev(sizeof(*and), DEV_NAME "%d", NET_NAME_ENUM, and_net_dev_setup);
 	if (!netdev)
 		return -ENOMEM;
 
