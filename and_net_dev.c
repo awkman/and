@@ -1,10 +1,37 @@
 #include <linux/module.h>
 #include <linux/etherdevice.h>
+#include <linux/inetdevice.h>
 #include <linux/if_arp.h>
 #include "util.h"
 #include "and_net_dev.h"
 
 extern struct and_priv *and;
+
+static int and_inetaddr_event(struct notifier_block *nb,
+	unsigned long event, void *data)
+{
+	struct in_ifaddr *ifa = data;
+	struct net_device *netdev = ifa->ifa_dev->dev;
+	struct and_priv *and = container_of(nb, struct and_priv, nb);
+
+	if (and->netdev->ifindex != netdev->ifindex)
+		return NOTIFY_DONE;
+
+	switch (event) {
+		case NETDEV_UP:
+			printk(KERN_INFO "%s: NETDEV_UP interface %s ip changed to " IP_ADDR "\n",
+			  __func__, netdev->name, P_IP_ADDR(be32_to_cpu(ifa->ifa_local)));
+			break;
+		case NETDEV_DOWN:
+			printk(KERN_INFO "%s: NETDEV_DOWN interface %s ip changed to " IP_ADDR "\n",
+			  __func__, ifa->ifa_label, P_IP_ADDR(be32_to_cpu(ifa->ifa_local)));
+			break;
+		default:
+			break;
+	}
+	
+	return NOTIFY_OK;
+}
 
 static int and_net_dev_ops_init(struct net_device *netdev)
 {
@@ -101,6 +128,9 @@ int and_net_dev_init()
 		return -ENOMEM;
 
 	and->netdev = netdev;
+	
+	and->nb.notifier_call = and_inetaddr_event;
+	register_inetaddr_notifier(&and->nb);
 
 	return 0;
 
@@ -114,6 +144,7 @@ void and_net_dev_exit(struct and_priv *and)
 	printk(KERN_INFO "%s\n", __func__);
 
 	if (and->netdev) {
+		unregister_inetaddr_notifier(&and->nb);
 		unregister_netdev(and->netdev);
 		free_netdev(and->netdev);
 	}
